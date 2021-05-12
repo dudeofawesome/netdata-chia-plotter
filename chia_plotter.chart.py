@@ -4,6 +4,12 @@ import os
 import subprocess
 import glob
 
+# try:
+#   import plotman
+#   HAS_PLOTMAN = True
+# except ImportError:
+#   HAS_PLOTMAN = False
+
 NETDATA_UPDATE_EVERY = 15
 priority = 90000
 
@@ -16,13 +22,13 @@ CHARTS = {
         #           name  title                units    family   context  chart type
         'options': [None, 'Plots in progress', 'plots', 'plots', 'plots', 'area'],
         #          unique_dimension_name, name, algorithm, multiplier, divisor
-        'lines': [['in_prog_plots']]
+        'lines': [['in_prog_plots', 'in progress']]
     },
     'farmable_plots': {
         #           name  title                units    family   context  chart type
         'options': [None, 'Farmable plots', 'plots', 'plots', 'plots', 'area'],
         #          unique_dimension_name, name, algorithm, multiplier, divisor
-        'lines': [['farmable_plots']]
+        'lines': [['farmable_plots', 'farmable']]
     },
     'phase': {
         #           name  title                         units               family   context  chart type
@@ -48,9 +54,11 @@ class Service(SimpleService):
     self.order = ORDER
     self.definitions = CHARTS
 
-  @staticmethod
-  def check():
+  def check(self):
     return True
+    # if not HAS_PLOTMAN:
+    #   self.error("'plotman' package is needed to use chia_plotter module")
+    #   return False
 
   def get_data(self):
     data = dict()
