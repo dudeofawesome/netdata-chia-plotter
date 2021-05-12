@@ -1,0 +1,9 @@
+[Unit]
+Description=Write plotman status to file for netdata
+
+[Timer]
+OnCalendar=*:*:0/15
+Unit=plotman-status-puller.service
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,11 @@
+[Unit]
+Description=Write plotman status to file for netdata
+
+[Service]
+Type=oneshot
+WorkingDirectory=/usr/local/src/chia-blockchain
+ExecStart=bash -c 'COLUMNS=500 plotman status > /var/tmp/plotman-status.out'
+User=dudeofawesome
+
+[Install]
+WantedBy=plotman-status-puller.timer
