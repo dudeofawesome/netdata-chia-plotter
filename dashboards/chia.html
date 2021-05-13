@@ -31,7 +31,41 @@
       property="og:description"
       content="Stunning real-time dashboards, blazingly fast and extremely interactive. Zero configuration, zero dependencies, zero maintenance."
     />
+
+    <script>
+      let netdataTheme = "slate"; // this is dark
+    </script>
     <script type="text/javascript" src="dashboard.js?v20190902-0"></script>
+
+    <style>
+      [data-legend-width="250px"] {
+        /* --legend-width: attr(data-legend-width, "140px"); */
+        --legend-width: 250px;
+      }
+
+      .netdata-dygraph-legend {
+        width: var(--legend-width);
+      }
+
+      .netdata-chart-with-legend-right {
+        width: calc(100% - var(--legend-width));
+        margin-right: var(--legend-width);
+      }
+
+      .netdata-legend-series {
+        width: 100%;
+      }
+
+      .netdata-legend-name {
+        --value-width: 20px;
+        --value-padding-left: 15px;
+
+        max-width: calc(
+          100% - (var(--value-width) + var(--value-padding-left))
+        ) !important;
+        width: unset !important;
+      }
+    </style>
   </head>
 
   <body>
@@ -64,115 +98,131 @@
     <div
       data-netdata="chia_plotter.in_prog_plots"
       data-width="100%"
-      data-height="30px"
+      data-height="100px"
       data-after="-28800"
       data-method="min"
+      data-legend-width="250px"
     ></div>
     <div
       data-netdata="chia_plotter.farmable_plots"
       data-width="100%"
-      data-height="30px"
+      data-height="100px"
       data-after="-28800"
       data-method="min"
+      data-legend-width="250px"
     ></div>
     <div
       data-netdata="chia_plotter.phase"
       data-width="100%"
-      data-height="30px"
+      data-height="250px"
       data-after="-28800"
       data-dygraph-valuerange="[1,4]"
+      data-legend-width="250px"
     ></div>
 
     <div
       data-netdata="cpu.cpu0"
       data-width="100%"
-      data-height="30px"
+      data-height="135px"
       data-after="-28800"
       data-method="max"
       data-common-max="cpu-utilization"
+      data-legend-width="250px"
     ></div>
     <div
       data-netdata="cpu.cpu1"
       data-width="100%"
-      data-height="30px"
+      data-height="135px"
       data-after="-28800"
       data-method="max"
       data-common-max="cpu-utilization"
+      data-legend-width="250px"
     ></div>
     <div
       data-netdata="cpu.cpu2"
       data-width="100%"
-      data-height="30px"
+      data-height="135px"
       data-after="-28800"
       data-method="max"
       data-common-max="cpu-utilization"
+      data-legend-width="250px"
     ></div>
     <div
       data-netdata="cpu.cpu3"
       data-width="100%"
-      data-height="30px"
+      data-height="135px"
       data-after="-28800"
       data-method="max"
       data-common-max="cpu-utilization"
+      data-legend-width="250px"
     ></div>
 
     <div
       data-netdata="cpu.core_throttling"
       data-width="100%"
-      data-height="30px"
+      data-height="100px"
       data-after="-28800"
       data-method="max"
+      data-legend-width="250px"
     ></div>
     <div
       data-netdata="cpu.cpufreq"
       data-width="100%"
-      data-height="30px"
+      data-height="100px"
       data-after="-28800"
       data-method="max"
+      data-legend-width="250px"
+      data-dygraph-valuerange="[0,6000]"
     ></div>
 
     <div
       data-netdata="disk.sda"
       data-width="100%"
-      data-height="30px"
+      data-height="100px"
       data-after="-28800"
       data-method="max"
+      data-legend-width="250px"
     ></div>
     <div
       data-netdata="disk.sdc"
       data-width="100%"
-      data-height="30px"
+      data-height="100px"
       data-after="-28800"
       data-method="max"
+      data-legend-width="250px"
     ></div>
     <div
       data-netdata="disk.sdd"
       data-width="100%"
-      data-height="30px"
+      data-height="100px"
       data-after="-28800"
       data-method="max"
+      data-legend-width="250px"
     ></div>
 
     <div
       data-netdata="disk_space._mnt_plot_cache_1"
       data-width="100%"
-      data-height="30px"
+      data-height="100px"
       data-after="-28800"
       data-method="max"
+      data-legend-width="250px"
     ></div>
     <div
       data-netdata="disk_space._mnt_plot_cache_2"
       data-width="100%"
-      data-height="30px"
+      data-height="100px"
       data-after="-28800"
       data-method="max"
+      data-legend-width="250px"
     ></div>
     <div
       data-netdata="disk_space._mnt_plot_cache_3"
       data-width="100%"
-      data-height="30px"
+      data-height="100px"
       data-after="-28800"
       data-method="max"
+      data-legend-width="250px"
     ></div>
   </body>
 </html>
