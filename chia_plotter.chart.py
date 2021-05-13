@@ -21,8 +21,11 @@ CHARTS = {
     'in_prog_plots': {
         #           name  title                units    family   context  chart type
         'options': [None, 'Plots in progress', 'plots', 'plots', 'plots', 'area'],
-        #          unique_dimension_name, name, algorithm, multiplier, divisor
-        'lines': [['in_prog_plots', 'in progress']]
+        'lines': [
+          # unique_dimension_name, name, algorithm, multiplier, divisor
+          ['in_prog_plots', 'in progress'],
+          ['paused_plots', 'paused'],
+        ]
     },
     'farmable_plots': {
         #           name  title                units    family   context  chart type
@@ -53,6 +56,8 @@ class Service(SimpleService):
     SimpleService.__init__(self, configuration=configuration, name=name)
     self.order = ORDER
     self.definitions = CHARTS
+    self.plot_path_globs = configuration.get('plot_path_globs', ['/mnt/*'])
+    self.debug(self.plot_path_globs)
 
   def check(self):
     return True
@@ -68,12 +73,16 @@ class Service(SimpleService):
 
     if 'in_prog_plots' not in self.charts['in_prog_plots']:
       self.charts['in_prog_plots'].add_dimension(['in_prog_plots'])
-    data['in_prog_plots'] = len(plots)
+    data['in_prog_plots'] = len(list(filter(lambda plot: plot.state != 'STP', plots)))
+
+    if 'paused_plots' not in self.charts['in_prog_plots']:
+      self.charts['in_prog_plots'].add_dimension(['paused_plots'])
+    data['paused_plots'] = len(list(filter(lambda plot: plot.state == 'STP', plots)))
 
     if 'farmable_plots' not in self.charts['farmable_plots']:
       self.charts['farmable_plots'].add_dimension(['farmable_plots'])
     
-    farmable_plots = get_farmable_plots()
+    farmable_plots = get_farmable_plots(self.plot_path_globs)
     self.debug(farmable_plots)
     data['farmable_plots'] = len(farmable_plots)
 
@@ -118,7 +127,6 @@ def read_plotman():
 
   for i in range(len(lines)):
     split = lines[i].split()
-    # lines[i] = split
     if len(split) < 13:
       raise Exception(''.join(['Invalid input ', lines[i]]))
 
@@ -140,11 +148,13 @@ def read_plotman():
   
   return lines
 
-def get_farmable_plots():
+def get_farmable_plots(plot_path_globs):
   plots = []
-  for cache_dir in glob.glob('/mnt/plot-cache-*'):
-    for plot in glob.glob(''.join([cache_dir, '/plots/*k32*.plot'])):
-      plots.append(plot)
+
+  for plot_path_glob in plot_path_globs:
+    for cache_dir in glob.glob(plot_path_glob):
+      for plot in glob.glob(''.join([cache_dir, '/plots/*k32*.plot'])):
+        plots.append(plot)  
 
   return plots
 
