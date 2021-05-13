@@ -77,7 +77,7 @@ class Service(SimpleService):
 
     if 'paused_plots' not in self.charts['in_prog_plots']:
       self.charts['in_prog_plots'].add_dimension(['paused_plots'])
-    data['paused_plots'] = len(list(filter(lambda plot: plot.state == 'STP', plots)))
+    data['paused_plots'] = -len(list(filter(lambda plot: plot.state == 'STP', plots)))
 
     if 'farmable_plots' not in self.charts['farmable_plots']:
       self.charts['farmable_plots'].add_dimension(['farmable_plots'])
