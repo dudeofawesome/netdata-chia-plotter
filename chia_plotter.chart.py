@@ -87,7 +87,7 @@ class Service(SimpleService):
     data['farmable_plots'] = len(farmable_plots)
 
     for i in range(0, len(plots)):
-      base_dimension_id = ''.join([plots[i].cache, ':', str(i)])
+      base_dimension_id = ''.join([plots[i].cache, ':', plots[i].id])
       phase_id = ''.join(['phase_', base_dimension_id])
       state_id = ''.join(['state_', base_dimension_id])
       wall_id = ''.join(['wall_', base_dimension_id])
