@@ -3,7 +3,11 @@ Description=Write plotman status to file for netdata
 
 [Service]
 Type=oneshot
-ExecStart=bash -c 'COLUMNS=500 plotman status > /var/tmp/plotman-status.out'
+ExecStart=bash -c '\
+  COLUMNS=500 plotman status > /var/tmp/plotman-status.out; \
+  . ~/Github/chia-blockchain/activate/bin/activate; \
+  chia farm summary > /var/tmp/chia-farm-summary.out; \
+  '
 User=dudeofawesome
 
 [Install]
