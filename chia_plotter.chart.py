@@ -14,7 +14,7 @@ NETDATA_UPDATE_EVERY = 15
 priority = 90000
 
 ORDER = [
-    'in_prog_plots', 'farmable_plots', 'phase', 'state', 'wall'
+    'in_prog_plots', 'farm_plots', 'plot_size', 'phase', 'state', 'wall'
 ]
 
 CHARTS = {
@@ -22,16 +22,28 @@ CHARTS = {
         #           name  title                units    family   context  chart type
         'options': [None, 'Plots in progress', 'plots', 'plots', 'plots', 'area'],
         'lines': [
-          # unique_dimension_name, name, algorithm, multiplier, divisor
+          # unique_name,    name,         algorithm, multiplier, divisor
           ['in_prog_plots', 'in progress'],
-          ['paused_plots', 'paused'],
+          ['paused_plots',  'paused',     None,      -1],
         ]
     },
-    'farmable_plots': {
+    'farm_plots': {
         #           name  title                units    family   context  chart type
-        'options': [None, 'Farmable plots', 'plots', 'plots', 'plots', 'area'],
-        #          unique_dimension_name, name, algorithm, multiplier, divisor
-        'lines': [['farmable_plots', 'farmable']]
+        'options': [None, 'Farm plots', 'plots', 'plots', 'plots', 'area'],
+        #  unique_name,      name,       algorithm, multiplier, divisor
+        'lines': [
+          ['farmable_plots', 'farmable'],
+          ['farming_plots',  'farming'],
+        ]
+    },
+    'plot_size': {
+        #           name  title                              units  family  context  chart type
+        'options': [None, 'Local & whole network plot size', 'PiB', 'size', 'plots', 'area'],
+        #  unique_name,       name,      algorithm, multiplier, divisor
+        'lines': [
+          ['local_plot_size', 'local',   None,      None,       1000000],
+          ['network_size',    'network', None,      None,       None],
+        ]
     },
     'phase': {
         #           name  title                         units               family   context  chart type
@@ -71,20 +83,16 @@ class Service(SimpleService):
     plots = read_plotman()
     self.debug(len(plots), 'plots in progress')
 
-    if 'in_prog_plots' not in self.charts['in_prog_plots']:
-      self.charts['in_prog_plots'].add_dimension(['in_prog_plots'])
-    data['in_prog_plots'] = len(list(filter(lambda plot: plot.state != 'STP', plots)))
+    data['paused_plots'] = len(list(filter(lambda plot: plot.state == 'STP', plots)))
+    data['in_prog_plots'] = len(plots) - data['paused_plots']
 
-    if 'paused_plots' not in self.charts['in_prog_plots']:
-      self.charts['in_prog_plots'].add_dimension(['paused_plots'])
-    data['paused_plots'] = -len(list(filter(lambda plot: plot.state == 'STP', plots)))
-
-    if 'farmable_plots' not in self.charts['farmable_plots']:
-      self.charts['farmable_plots'].add_dimension(['farmable_plots'])
-    
     farmable_plots = get_farmable_plots(self.plot_path_globs)
-    self.debug(farmable_plots)
     data['farmable_plots'] = len(farmable_plots)
+
+    farm_summary = get_farm_summary(self)
+    data['farming_plots'] = farm_summary.plot_count
+    data['local_plot_size'] = farm_summary.total_plot_size * 1000000
+    data['network_size'] = farm_summary.est_net_size
 
     for i in range(0, len(plots)):
       base_dimension_id = ''.join([plots[i].cache, ':', plots[i].id])
@@ -93,7 +101,7 @@ class Service(SimpleService):
       wall_id = ''.join(['wall_', base_dimension_id])
 
       if phase_id not in self.charts['phase']:
-        self.charts['phase'].add_dimension([phase_id, None, None, None, 10])
+        self.charts['phase'].add_dimension([phase_id, base_dimension_id, None, None, 10])
       if state_id not in self.charts['state']:
         self.charts['state'].add_dimension([state_id])
       if wall_id not in self.charts['wall']:
@@ -101,7 +109,6 @@ class Service(SimpleService):
 
       phase = plots[i].phase.split(':')
       data[phase_id] = (float(phase[0]) + (float(phase[1]) / 10)) * 10.0
-      self.debug(data[phase_id])
 
       # data[state_id] = plots[i].state
 
@@ -158,6 +165,52 @@ def get_farmable_plots(plot_path_globs):
 
   return plots
 
+def get_farm_summary(self):
+  summary_file_path = '/var/tmp/chia-farm-summary.out'
+  if not os.path.isfile(summary_file_path):
+    return
+  summary_file = open(summary_file_path, 'r')
+  summary_lines = summary_file.read().split('\n')
+  summary_file.close()
+  summary_hash = {}
+  for line in summary_lines:
+    if line != None and line != '':
+      split = line.split(': ', maxsplit=1)
+      summary_hash[split[0].lower()] = split[1]
+
+  total_plot_size = None
+  if 'total size of plots' in summary_hash:
+    factor = conversion_factors_to_from['PiB'][summary_hash['total size of plots'][-3:]]
+    total_plot_size = float(summary_hash['total size of plots'][0:-4]) * factor
+
+  est_net_size = None
+  if 'estimated network space' in summary_hash:
+    factor = conversion_factors_to_from['PiB'][summary_hash['estimated network space'][-3:]]
+    est_net_size = float(summary_hash['estimated network space'][0:-4]) * factor
+
+  self.debug('TOTAL SIZE OF PLOTS')
+  self.debug(summary_hash['total size of plots'])
+  self.debug(total_plot_size, 'PiB')
+
+  return FarmSummary(
+    status =
+      summary_hash['farming status'] if 'farming status' in summary_hash else None,
+    chia_farmed =
+      float(summary_hash['total chia farmed']) if 'total chia farmed' in summary_hash else None,
+    transaction_fees =
+      float(summary_hash['user transaction fees']) if 'user transaction fees' in summary_hash else None,
+    block_rewards =
+      float(summary_hash['block rewards']) if 'block rewards' in summary_hash else None,
+    last_height_farmed =
+      int(summary_hash['last height farmed']) if 'last height farmed' in summary_hash else None,
+    plot_count =
+      int(summary_hash['plot count']) if 'plot count' in summary_hash else None,
+    total_plot_size = total_plot_size,
+    est_net_size = est_net_size,
+    etw =
+      summary_hash['expected time to win'] if 'expected time to win' in summary_hash else None,
+  )
+
 class Plot():
   def __init__(
     self, id=None, k=None, cache=None, dest=None, wall=None, phase=None,
@@ -177,3 +230,85 @@ class Plot():
     self.user = user
     self.sys = sys
     self.io = io
+
+class FarmSummary():
+  def __init__(
+    self, status=None, chia_farmed=None, transaction_fees=None,
+    block_rewards=None, last_height_farmed=None, plot_count=None,
+    total_plot_size=None, est_net_size=None, etw=None
+  ):
+    self.status = status
+    self.chia_farmed = chia_farmed
+    self.transaction_fees = transaction_fees
+    self.block_rewards = block_rewards
+    self.last_height_farmed = last_height_farmed
+    self.plot_count = plot_count
+    self.total_plot_size = total_plot_size
+    self.est_net_size = est_net_size
+    self.etw = etw
+
+conversion_factors_to_from = {
+  'KiB': {
+    'KiB': 1,
+    'MiB': 1_024,
+    'GiB': 1_048_576,
+    'TiB': 1_073_741_824,
+    'PiB': 1_099_511_627_776,
+    'EiB': 1_125_899_906_842_624,
+    'ZiB': 1_152_921_504_606_846_976,
+  },
+  'MiB': {
+    'KiB': 1 / 1_024,
+    'MiB': 1,
+    'GiB': 1_024,
+    'TiB': 1_048_576,
+    'PiB': 1_073_741_824,
+    'EiB': 1_099_511_627_776,
+    'ZiB': 1_125_899_906_842_624,
+  },
+  'GiB': {
+    'KiB': 1 / 1_048_576,
+    'MiB': 1 / 1_024,
+    'GiB': 1,
+    'TiB': 1_024,
+    'PiB': 1_048_576,
+    'EiB': 1_073_741_824,
+    'ZiB': 1_099_511_627_776,
+  },
+  'TiB': {
+    'KiB': 1 / 1_073_741_824,
+    'MiB': 1 / 1_048_576,
+    'GiB': 1 / 1_024,
+    'TiB': 1,
+    'PiB': 1_024,
+    'EiB': 1_048_576,
+    'ZiB': 1_073_741_824,
+  },
+  'PiB': {
+    'KiB': 1 / 1_099_511_627_776,
+    'MiB': 1 / 1_073_741_824,
+    'GiB': 1 / 1_048_576,
+    'TiB': 1 / 1_024,
+    'PiB': 1,
+    'EiB': 1_024,
+    'ZiB': 1_048_576,
+  },
+  'EiB': {
+    'KiB': 1 / 1_125_899_906_842_624,
+    'MiB': 1 / 1_099_511_627_776,
+    'GiB': 1 / 1_073_741_824,
+    'TiB': 1 / 1_048_576,
+    'PiB': 1 / 1_024,
+    'EiB': 1,
+    'ZiB': 1_024,
+  },
+  'ZiB': {
+    'KiB': 1 / 1_152_921_504_606_846_976,
+    'MiB': 1 / 1_125_899_906_842_624,
+    'GiB': 1 / 1_099_511_627_776,
+    'TiB': 1 / 1_073_741_824,
+    'PiB': 1 / 1_048_576,
+    'EiB': 1 / 1_024,
+    'ZiB': 1,
+  },
+}
