@@ -43,7 +43,7 @@ CHARTS = {
     },
     'plot_size': {
         #           name  title                              units  family     context  chart type
-        'options': [None, 'Network plot sizes', 'PiB', 'farming', 'plots', 'area'],
+        'options': [None, 'Network plot sizes', 'TiB', 'farming', 'plots', 'area'],
         #  unique_name,       name,      algorithm, multiplier, divisor
         'lines': [
           ['local_plot_size', 'local',   None,      None,       1000],
@@ -180,12 +180,12 @@ def get_farm_summary(self):
 
   total_plot_size = None
   if 'total size of plots' in summary_hash:
-    factor = conversion_factors_to_from['PiB'][summary_hash['total size of plots'][-3:]]
+    factor = conversion_factors_to_from['TiB'][summary_hash['total size of plots'][-3:]]
     total_plot_size = float(summary_hash['total size of plots'][0:-4]) * factor
 
   est_net_size = None
   if 'estimated network space' in summary_hash:
-    factor = conversion_factors_to_from['PiB'][summary_hash['estimated network space'][-3:]]
+    factor = conversion_factors_to_from['TiB'][summary_hash['estimated network space'][-3:]]
     est_net_size = float(summary_hash['estimated network space'][0:-4]) * factor
 
   self.debug('TOTAL SIZE OF PLOTS')
