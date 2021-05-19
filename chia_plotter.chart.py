@@ -14,22 +14,27 @@ NETDATA_UPDATE_EVERY = 15
 priority = 90000
 
 ORDER = [
-    'in_prog_plots', 'farm_plots', 'plot_size', 'phase', 'state', 'wall'
+    'in_prog_plots', 'phase', 'farm_plots', 'plot_size', 'state', 'wall'
 ]
 
 CHARTS = {
     'in_prog_plots': {
-        #           name  title                units    family   context  chart type
-        'options': [None, 'Plots in progress', 'plots', 'plots', 'plots', 'area'],
+        #           name  title                units    family      context  chart type
+        'options': [None, 'Plots in progress', 'plots', 'plotting', 'plots', 'area'],
         'lines': [
           # unique_name,    name,         algorithm, multiplier, divisor
           ['in_prog_plots', 'in progress'],
           ['paused_plots',  'paused',     None,      -1],
         ]
     },
+    'phase': {
+        #           name  title                         units               family      context  chart type
+        'options': [None, 'The phase of the chia plot', 'chia plots phase', 'plotting', 'phase', 'line'],
+        'lines': []
+    },
     'farm_plots': {
-        #           name  title                units    family   context  chart type
-        'options': [None, 'Farm plots', 'plots', 'plots', 'plots', 'area'],
+        #           name  title            units    family     context  chart type
+        'options': [None, 'Plots in farm', 'plots', 'farming', 'plots', 'area'],
         #  unique_name,      name,       algorithm, multiplier, divisor
         'lines': [
           ['farmable_plots', 'farmable'],
@@ -37,27 +42,22 @@ CHARTS = {
         ]
     },
     'plot_size': {
-        #           name  title                              units  family  context  chart type
-        'options': [None, 'Local & whole network plot size', 'PiB', 'size', 'plots', 'area'],
+        #           name  title                              units  family     context  chart type
+        'options': [None, 'Network plot sizes', 'PiB', 'farming', 'plots', 'area'],
         #  unique_name,       name,      algorithm, multiplier, divisor
         'lines': [
-          ['local_plot_size', 'local',   None,      None,       1000000],
+          ['local_plot_size', 'local',   None,      None,       1000],
           ['network_size',    'network', None,      None,       None],
         ]
     },
-    'phase': {
-        #           name  title                         units               family   context  chart type
-        'options': [None, 'The phase of the chia plot', 'chia plots phase', 'phase', 'phase', 'line'],
-        'lines': []
-    },
     'state': {
-        #           name  title                         units              family   context  chart type
-        'options': [None, 'The state of the chia plot', 'chia plot state', 'state', 'state', 'line'],
+        #           name  title                         units              family      context  chart type
+        'options': [None, 'The state of the chia plot', 'chia plot state', 'plotting', 'state', 'line'],
         'lines': []
     },
     'wall': {
-        #           name  title        units    family  context chart type
-        'options': [None, 'Who knows', 'hours', 'wall', 'wall', 'line'],
+        #           name  title        units    family      context chart type
+        'options': [None, 'Who knows', 'hours', 'plotting', 'wall', 'line'],
         'lines': []
     },
 }
@@ -91,7 +91,7 @@ class Service(SimpleService):
 
     farm_summary = get_farm_summary(self)
     data['farming_plots'] = farm_summary.plot_count
-    data['local_plot_size'] = farm_summary.total_plot_size * 1000000
+    data['local_plot_size'] = farm_summary.total_plot_size * 1000
     data['network_size'] = farm_summary.est_net_size
 
     for i in range(0, len(plots)):
