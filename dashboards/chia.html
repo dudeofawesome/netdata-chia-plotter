@@ -33,11 +33,27 @@
     />
 
     <script>
-      let netdataTheme = "slate"; // this is dark
+      window.netdataTheme = "slate"; // this is dark
+
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", (ev) => {
+          if (ev.target.matches) {
+            window.netdataTheme = "slate";
+          } else {
+            window.netdataTheme = "white";
+          }
+        });
     </script>
     <script type="text/javascript" src="dashboard.js?v20190902-0"></script>
 
     <style>
+      .container {
+        margin-left: 15px;
+        margin-right: 15px;
+        width: unset;
+      }
+
       [data-legend-width="250px"] {
         /* --legend-width: attr(data-legend-width, "140px"); */
         --legend-width: 250px;
@@ -69,160 +85,193 @@
   </head>
 
   <body>
-    <!-- <div style="width: 100%; text-align: center">
-      <div
-        data-netdata="netdata.server_cpu"
-        data-dimensions="user"
-        data-chart-library="gauge"
-        data-width="150px"
-        data-after="-60"
-        data-points="60"
-        data-title="Yes! Realtime!"
-        data-units="I am alive!"
-        data-colors="#FF5555"
-      ></div>
-      <br />
-      <div
-        data-netdata="netdata.server_cpu"
-        data-dimensions="user"
-        data-chart-library="dygraph"
-        data-dygraph-theme="sparkline"
-        data-width="200px"
-        data-height="30px"
-        data-after="-60"
-        data-points="60"
-        data-colors="#FF5555"
-      ></div>
-    </div> -->
+    <!-- <div id="hostname">Netdata</div> -->
 
-    <div
-      data-netdata="chia_plotter.in_prog_plots"
-      data-width="100%"
-      data-height="100px"
-      data-after="-43200"
-      data-method="min"
-      data-legend-width="250px"
-    ></div>
-    <div
-      data-netdata="chia_plotter.farmable_plots"
-      data-width="100%"
-      data-height="100px"
-      data-after="-43200"
-      data-method="min"
-      data-legend-width="250px"
-    ></div>
-    <div
-      data-netdata="chia_plotter.phase"
-      data-width="100%"
-      data-height="250px"
-      data-after="-43200"
-      data-dygraph-valuerange="[1.1,4]"
-      data-legend-width="250px"
-    ></div>
+    <div class="container">
+      <div class="row">
+        <!-- <div style="width: 100%; text-align: center">
+          <div
+            data-netdata="netdata.server_cpu"
+            data-dimensions="user"
+            data-chart-library="gauge"
+            data-width="150px"
+            data-after="-60"
+            data-points="60"
+            data-title="Yes! Realtime!"
+            data-units="I am alive!"
+            data-colors="#FF5555"
+          ></div>
+          <br />
+          <div
+            data-netdata="netdata.server_cpu"
+            data-dimensions="user"
+            data-chart-library="dygraph"
+            data-dygraph-theme="sparkline"
+            data-width="200px"
+            data-height="30px"
+            data-after="-60"
+            data-points="60"
+            data-colors="#FF5555"
+          ></div>
+        </div> -->
 
-    <div
-      data-netdata="cpu.cpu0"
-      data-width="100%"
-      data-height="135px"
-      data-after="-43200"
-      data-method="max"
-      data-common-max="cpu-utilization"
-      data-legend-width="250px"
-    ></div>
-    <div
-      data-netdata="cpu.cpu1"
-      data-width="100%"
-      data-height="135px"
-      data-after="-43200"
-      data-method="max"
-      data-common-max="cpu-utilization"
-      data-legend-width="250px"
-    ></div>
-    <div
-      data-netdata="cpu.cpu2"
-      data-width="100%"
-      data-height="135px"
-      data-after="-43200"
-      data-method="max"
-      data-common-max="cpu-utilization"
-      data-legend-width="250px"
-    ></div>
-    <div
-      data-netdata="cpu.cpu3"
-      data-width="100%"
-      data-height="135px"
-      data-after="-43200"
-      data-method="max"
-      data-common-max="cpu-utilization"
-      data-legend-width="250px"
-    ></div>
+        <div
+          data-netdata="chia_plotter.in_prog_plots"
+          data-width="100%"
+          data-height="100px"
+          data-after="-43200"
+          data-method="max"
+          data-legend-width="250px"
+        ></div>
+        <div
+          data-netdata="chia_plotter.farm_plots"
+          data-width="100%"
+          data-height="100px"
+          data-after="-43200"
+          data-method="max"
+          data-legend-width="250px"
+        ></div>
+        <div
+          data-netdata="chia_plotter.phase"
+          data-width="100%"
+          data-height="250px"
+          data-after="-43200"
+          data-dygraph-valuerange="[1.1,4]"
+          data-legend-width="250px"
+        ></div>
+        <div
+          data-netdata="chia_plotter.plot_size"
+          data-width="100%"
+          data-height="100px"
+          data-after="-43200"
+          data-method="max"
+          data-dygraph-valuerange="[0,null]"
+          data-legend-width="250px"
+        ></div>
+        <div
+          data-netdata="chia_plotter.local_to_net_ratio"
+          data-width="100%"
+          data-height="100px"
+          data-after="-43200"
+          data-method="max"
+          data-dygraph-valuerange="[0,null]"
+          data-legend-width="250px"
+        ></div>
+        <div
+          data-netdata="chia_plotter.estimated_time_to_win"
+          data-width="100%"
+          data-height="100px"
+          data-after="-43200"
+          data-method="average"
+          data-dygraph-valuerange="[0,null]"
+          data-legend-width="250px"
+        ></div>
 
-    <div
-      data-netdata="cpu.core_throttling"
-      data-width="100%"
-      data-height="100px"
-      data-after="-43200"
-      data-method="max"
-      data-legend-width="250px"
-    ></div>
-    <div
-      data-netdata="cpu.cpufreq"
-      data-width="100%"
-      data-height="100px"
-      data-after="-43200"
-      data-method="max"
-      data-legend-width="250px"
-      data-dygraph-valuerange="[0,6000]"
-    ></div>
+        <div
+          data-netdata="cpu.cpu0"
+          data-width="100%"
+          data-height="135px"
+          data-after="-43200"
+          data-method="max"
+          data-common-max="cpu-utilization"
+          data-legend-width="250px"
+        ></div>
+        <div
+          data-netdata="cpu.cpu1"
+          data-width="100%"
+          data-height="135px"
+          data-after="-43200"
+          data-method="max"
+          data-common-max="cpu-utilization"
+          data-legend-width="250px"
+        ></div>
+        <div
+          data-netdata="cpu.cpu2"
+          data-width="100%"
+          data-height="135px"
+          data-after="-43200"
+          data-method="max"
+          data-common-max="cpu-utilization"
+          data-legend-width="250px"
+        ></div>
+        <div
+          data-netdata="cpu.cpu3"
+          data-width="100%"
+          data-height="135px"
+          data-after="-43200"
+          data-method="max"
+          data-common-max="cpu-utilization"
+          data-legend-width="250px"
+        ></div>
 
-    <div
-      data-netdata="disk.sda"
-      data-width="100%"
-      data-height="100px"
-      data-after="-43200"
-      data-method="max"
-      data-legend-width="250px"
-    ></div>
-    <div
-      data-netdata="disk.sdc"
-      data-width="100%"
-      data-height="100px"
-      data-after="-43200"
-      data-method="max"
-      data-legend-width="250px"
-    ></div>
-    <div
-      data-netdata="disk.sdd"
-      data-width="100%"
-      data-height="100px"
-      data-after="-43200"
-      data-method="max"
-      data-legend-width="250px"
-    ></div>
+        <div
+          data-netdata="cpu.core_throttling"
+          data-width="100%"
+          data-height="100px"
+          data-after="-43200"
+          data-method="max"
+          data-legend-width="250px"
+        ></div>
+        <div
+          data-netdata="cpu.cpufreq"
+          data-width="100%"
+          data-height="100px"
+          data-after="-43200"
+          data-method="max"
+          data-legend-width="250px"
+          data-dygraph-valuerange="[0,6000]"
+        ></div>
 
-    <div
-      data-netdata="disk_space._mnt_plot_cache_1"
-      data-width="100%"
-      data-height="100px"
-      data-after="-43200"
-      data-method="max"
-      data-legend-width="250px"
-    ></div>
-    <div
-      data-netdata="disk_space._mnt_plot_cache_2"
-      data-width="100%"
-      data-height="100px"
-      data-after="-43200"
-      data-method="max"
-      data-legend-width="250px"
-    ></div>
-    <div
-      data-netdata="disk_space._mnt_plot_cache_3"
-      data-width="100%"
-      data-height="100px"
-      data-after="-43200"
-      data-method="max"
-      data-legend-width="250px"
-    ></div>
+        <div
+          data-netdata="disk.sda"
+          data-width="100%"
+          data-height="100px"
+          data-after="-43200"
+          data-method="max"
+          data-legend-width="250px"
+        ></div>
+        <div
+          data-netdata="disk.sdc"
+          data-width="100%"
+          data-height="100px"
+          data-after="-43200"
+          data-method="max"
+          data-legend-width="250px"
+        ></div>
+        <div
+          data-netdata="disk.sdd"
+          data-width="100%"
+          data-height="100px"
+          data-after="-43200"
+          data-method="max"
+          data-legend-width="250px"
+        ></div>
+
+        <div
+          data-netdata="disk_space._mnt_plot_cache_1"
+          data-width="100%"
+          data-height="100px"
+          data-after="-43200"
+          data-method="max"
+          data-legend-width="250px"
+        ></div>
+        <div
+          data-netdata="disk_space._mnt_plot_cache_2"
+          data-width="100%"
+          data-height="100px"
+          data-after="-43200"
+          data-method="max"
+          data-legend-width="250px"
+        ></div>
+        <div
+          data-netdata="disk_space._mnt_plot_cache_3"
+          data-width="100%"
+          data-height="100px"
+          data-after="-43200"
+          data-method="max"
+          data-legend-width="250px"
+        ></div>
+      </div>
+    </div>
   </body>
 </html>
