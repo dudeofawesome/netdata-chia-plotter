@@ -19,10 +19,14 @@ ORDER = [
     'phase',
     'farm_plots',
     'plot_size',
+    'local_to_net_ratio',
     'estimated_time_to_win',
     'state',
     'wall',
 ]
+
+LOCAL_PLOT_SIZE_DIVISOR = 100
+LOCAL_TO_NET_RATIO_DIVISOR = 100000000000
 
 CHARTS = {
     'in_prog_plots': {
@@ -46,6 +50,7 @@ CHARTS = {
         'lines': [
           ['farmable_plots', 'farmable'],
           ['farming_plots',  'farming'],
+          ['farmed_plots',  'farmed'],
         ]
     },
     'plot_size': {
@@ -53,8 +58,16 @@ CHARTS = {
         'options': [None, 'Network plot sizes', 'TiB', 'farming', 'plots', 'area'],
         #  unique_name,       name,      algorithm, multiplier, divisor
         'lines': [
-          ['local_plot_size', 'local',   None,      None,       100],
+          ['local_plot_size', 'local',   None,      None,       LOCAL_PLOT_SIZE_DIVISOR],
           ['network_size',    'network', None,      None,       None],
+        ]
+    },
+    'local_to_net_ratio': {
+        #           name  title                 units family     context  chart type
+        'options': [None, '% of network owned', '%',  'farming', 'plots', 'area'],
+        #  unique_name,          name,                 algorithm, multiplier, divisor
+        'lines': [
+          ['local_to_net_ratio', '% of network owned', None,      None,       LOCAL_TO_NET_RATIO_DIVISOR],
         ]
     },
     'estimated_time_to_win': {
@@ -94,7 +107,6 @@ class Service(SimpleService):
     data = dict()
 
     plots = read_plotman()
-    self.debug(len(plots), 'plots in progress')
 
     data['paused_plots'] = len(list(filter(lambda plot: plot.state == 'STP', plots)))
     data['in_prog_plots'] = len(plots) - data['paused_plots']
@@ -104,9 +116,13 @@ class Service(SimpleService):
 
     farm_summary = get_farm_summary(self)
     data['farming_plots'] = farm_summary.plot_count
-    data['local_plot_size'] = farm_summary.total_plot_size * 100
+    data['farmed_plots'] = farm_summary.chia_farmed
+    data['local_plot_size'] = farm_summary.total_plot_size * LOCAL_PLOT_SIZE_DIVISOR
     data['network_size'] = farm_summary.est_net_size
+    data['local_to_net_ratio'] = (farm_summary.total_plot_size / farm_summary.est_net_size) * LOCAL_TO_NET_RATIO_DIVISOR
     data['estimated_time_to_win'] = farm_summary.etw
+
+    self.debug(data['local_to_net_ratio'], '<= % of net owned')
 
     for i in range(0, len(plots)):
       base_dimension_id = ''.join([plots[i].cache, ':', plots[i].id])
