@@ -3,6 +3,7 @@ from bases.FrameworkServices.SimpleService import SimpleService
 import os
 import subprocess
 import glob
+import re
 
 # try:
 #   import plotman
@@ -14,7 +15,13 @@ NETDATA_UPDATE_EVERY = 15
 priority = 90000
 
 ORDER = [
-    'in_prog_plots', 'phase', 'farm_plots', 'plot_size', 'state', 'wall'
+    'in_prog_plots',
+    'phase',
+    'farm_plots',
+    'plot_size',
+    'estimated_time_to_win',
+    'state',
+    'wall',
 ]
 
 CHARTS = {
@@ -42,13 +49,19 @@ CHARTS = {
         ]
     },
     'plot_size': {
-        #           name  title                              units  family     context  chart type
+        #           name  title                 units  family     context  chart type
         'options': [None, 'Network plot sizes', 'TiB', 'farming', 'plots', 'area'],
         #  unique_name,       name,      algorithm, multiplier, divisor
         'lines': [
-          ['local_plot_size', 'local',   None,      None,       1000],
+          ['local_plot_size', 'local',   None,      None,       100],
           ['network_size',    'network', None,      None,       None],
         ]
+    },
+    'estimated_time_to_win': {
+        #           name  title                    units   family     context  chart type
+        'options': [None, 'Estimated time to win', 'days', 'farming', 'days', 'area'],
+        #          unique_name,             name,                      algorithm, multiplier, divisor
+        'lines': [['estimated_time_to_win', 'Estimated time to win',   None,      None,       None]]
     },
     'state': {
         #           name  title                         units              family      context  chart type
@@ -91,8 +104,9 @@ class Service(SimpleService):
 
     farm_summary = get_farm_summary(self)
     data['farming_plots'] = farm_summary.plot_count
-    data['local_plot_size'] = farm_summary.total_plot_size * 1000
+    data['local_plot_size'] = farm_summary.total_plot_size * 100
     data['network_size'] = farm_summary.est_net_size
+    data['estimated_time_to_win'] = farm_summary.etw
 
     for i in range(0, len(plots)):
       base_dimension_id = ''.join([plots[i].cache, ':', plots[i].id])
@@ -152,7 +166,7 @@ def read_plotman():
       sys=split[11],
       io=split[12],
     )
-  
+
   return lines
 
 def get_farmable_plots(plot_path_globs):
@@ -161,7 +175,7 @@ def get_farmable_plots(plot_path_globs):
   for plot_path_glob in plot_path_globs:
     for cache_dir in glob.glob(plot_path_glob):
       for plot in glob.glob(''.join([cache_dir, '/plots/*k32*.plot'])):
-        plots.append(plot)  
+        plots.append(plot)
 
   return plots
 
@@ -178,37 +192,90 @@ def get_farm_summary(self):
       split = line.split(': ', maxsplit=1)
       summary_hash[split[0].lower()] = split[1]
 
+  if 'total chia farmed' in summary_hash:
+    try:
+      chia_farmed = float(summary_hash['total chia farmed'])
+    except:
+      chia_farmed = None
+
+  if 'user transaction fees' in summary_hash:
+    try:
+      transaction_fees = float(summary_hash['user transaction fees'])
+    except:
+      transaction_fees = None
+
+  if 'block rewards' in summary_hash:
+    try:
+      block_rewards = float(summary_hash['block rewards'])
+    except:
+      block_rewards = None
+
+  if 'last height farmed' in summary_hash:
+    try:
+      last_height_farmed = int(summary_hash['last height farmed'])
+    except:
+      last_height_farmed = None
+
+  if 'plot count' in summary_hash:
+    try:
+      plot_count = int(summary_hash['plot count'])
+    except:
+      plot_count = None
+
   total_plot_size = None
   if 'total size of plots' in summary_hash:
-    factor = conversion_factors_to_from['TiB'][summary_hash['total size of plots'][-3:]]
+    # possible values:
+    # Unknown
+    # 101.3 EiB
+    # 101.3 PiB
+    # 101.3 TiB
+    factor = conversion_factors_to_from['storage']['TiB'][summary_hash['total size of plots'][-3:]]
     total_plot_size = float(summary_hash['total size of plots'][0:-4]) * factor
 
   est_net_size = None
   if 'estimated network space' in summary_hash:
-    factor = conversion_factors_to_from['TiB'][summary_hash['estimated network space'][-3:]]
+    # possible values:
+    # Unknown
+    # 101.3 EiB
+    # 101.3 PiB
+    # 101.3 TiB
+    factor = conversion_factors_to_from['storage']['TiB'][summary_hash['estimated network space'][-3:]]
     est_net_size = float(summary_hash['estimated network space'][0:-4]) * factor
 
   self.debug('TOTAL SIZE OF PLOTS')
   self.debug(summary_hash['total size of plots'])
-  self.debug(total_plot_size, 'PiB')
+  self.debug(total_plot_size, 'TiB')
+
+  etw = None
+  if 'expected time to win' in summary_hash:
+    # possible values:
+    # Unknown
+    # 10 years
+    # 4 months and 3 days
+    # 4 months
+    # 2 weeks
+    # 3 days
+    # 15 hours
+    # 45 minutes
+    # https://regex101.com/r/rZgpIG/1
+    if summary_hash['expected time to win'] != 'Unknown':
+      matches = re.findall(r"(\d+) (\w+)", summary_hash['expected time to win'])
+      etw = 0
+      for match in matches:
+        factor = conversion_factors_to_from['duration']['days'][match[1]]
+        etw += int(match[0]) * factor
 
   return FarmSummary(
     status =
       summary_hash['farming status'] if 'farming status' in summary_hash else None,
-    chia_farmed =
-      float(summary_hash['total chia farmed']) if 'total chia farmed' in summary_hash else None,
-    transaction_fees =
-      float(summary_hash['user transaction fees']) if 'user transaction fees' in summary_hash else None,
-    block_rewards =
-      float(summary_hash['block rewards']) if 'block rewards' in summary_hash else None,
-    last_height_farmed =
-      int(summary_hash['last height farmed']) if 'last height farmed' in summary_hash else None,
-    plot_count =
-      int(summary_hash['plot count']) if 'plot count' in summary_hash else None,
+    chia_farmed = chia_farmed,
+    transaction_fees = transaction_fees,
+    block_rewards = block_rewards,
+    last_height_farmed = last_height_farmed,
+    plot_count = plot_count,
     total_plot_size = total_plot_size,
     est_net_size = est_net_size,
-    etw =
-      summary_hash['expected time to win'] if 'expected time to win' in summary_hash else None,
+    etw = etw,
   )
 
 class Plot():
@@ -248,67 +315,80 @@ class FarmSummary():
     self.etw = etw
 
 conversion_factors_to_from = {
-  'KiB': {
-    'KiB': 1,
-    'MiB': 1_024,
-    'GiB': 1_048_576,
-    'TiB': 1_073_741_824,
-    'PiB': 1_099_511_627_776,
-    'EiB': 1_125_899_906_842_624,
-    'ZiB': 1_152_921_504_606_846_976,
+  'storage': {
+    'KiB': {
+      'KiB': 1,
+      'MiB': 1_024,
+      'GiB': 1_048_576,
+      'TiB': 1_073_741_824,
+      'PiB': 1_099_511_627_776,
+      'EiB': 1_125_899_906_842_624,
+      'ZiB': 1_152_921_504_606_846_976,
+    },
+    'MiB': {
+      'KiB': 1 / 1_024,
+      'MiB': 1,
+      'GiB': 1_024,
+      'TiB': 1_048_576,
+      'PiB': 1_073_741_824,
+      'EiB': 1_099_511_627_776,
+      'ZiB': 1_125_899_906_842_624,
+    },
+    'GiB': {
+      'KiB': 1 / 1_048_576,
+      'MiB': 1 / 1_024,
+      'GiB': 1,
+      'TiB': 1_024,
+      'PiB': 1_048_576,
+      'EiB': 1_073_741_824,
+      'ZiB': 1_099_511_627_776,
+    },
+    'TiB': {
+      'KiB': 1 / 1_073_741_824,
+      'MiB': 1 / 1_048_576,
+      'GiB': 1 / 1_024,
+      'TiB': 1,
+      'PiB': 1_024,
+      'EiB': 1_048_576,
+      'ZiB': 1_073_741_824,
+    },
+    'PiB': {
+      'KiB': 1 / 1_099_511_627_776,
+      'MiB': 1 / 1_073_741_824,
+      'GiB': 1 / 1_048_576,
+      'TiB': 1 / 1_024,
+      'PiB': 1,
+      'EiB': 1_024,
+      'ZiB': 1_048_576,
+    },
+    'EiB': {
+      'KiB': 1 / 1_125_899_906_842_624,
+      'MiB': 1 / 1_099_511_627_776,
+      'GiB': 1 / 1_073_741_824,
+      'TiB': 1 / 1_048_576,
+      'PiB': 1 / 1_024,
+      'EiB': 1,
+      'ZiB': 1_024,
+    },
+    'ZiB': {
+      'KiB': 1 / 1_152_921_504_606_846_976,
+      'MiB': 1 / 1_125_899_906_842_624,
+      'GiB': 1 / 1_099_511_627_776,
+      'TiB': 1 / 1_073_741_824,
+      'PiB': 1 / 1_048_576,
+      'EiB': 1 / 1_024,
+      'ZiB': 1,
+    },
   },
-  'MiB': {
-    'KiB': 1 / 1_024,
-    'MiB': 1,
-    'GiB': 1_024,
-    'TiB': 1_048_576,
-    'PiB': 1_073_741_824,
-    'EiB': 1_099_511_627_776,
-    'ZiB': 1_125_899_906_842_624,
-  },
-  'GiB': {
-    'KiB': 1 / 1_048_576,
-    'MiB': 1 / 1_024,
-    'GiB': 1,
-    'TiB': 1_024,
-    'PiB': 1_048_576,
-    'EiB': 1_073_741_824,
-    'ZiB': 1_099_511_627_776,
-  },
-  'TiB': {
-    'KiB': 1 / 1_073_741_824,
-    'MiB': 1 / 1_048_576,
-    'GiB': 1 / 1_024,
-    'TiB': 1,
-    'PiB': 1_024,
-    'EiB': 1_048_576,
-    'ZiB': 1_073_741_824,
-  },
-  'PiB': {
-    'KiB': 1 / 1_099_511_627_776,
-    'MiB': 1 / 1_073_741_824,
-    'GiB': 1 / 1_048_576,
-    'TiB': 1 / 1_024,
-    'PiB': 1,
-    'EiB': 1_024,
-    'ZiB': 1_048_576,
-  },
-  'EiB': {
-    'KiB': 1 / 1_125_899_906_842_624,
-    'MiB': 1 / 1_099_511_627_776,
-    'GiB': 1 / 1_073_741_824,
-    'TiB': 1 / 1_048_576,
-    'PiB': 1 / 1_024,
-    'EiB': 1,
-    'ZiB': 1_024,
-  },
-  'ZiB': {
-    'KiB': 1 / 1_152_921_504_606_846_976,
-    'MiB': 1 / 1_125_899_906_842_624,
-    'GiB': 1 / 1_099_511_627_776,
-    'TiB': 1 / 1_073_741_824,
-    'PiB': 1 / 1_048_576,
-    'EiB': 1 / 1_024,
-    'ZiB': 1,
-  },
+  'duration': {
+    'days': {
+      'seconds': 1 / (60 * 60 * 24),
+      'minutes': 1 / (60 * 24),
+      'hours': 1 / 24,
+      'days': 1,
+      'weeks': 7,
+      'months': 365.25 / 12,
+      'years': 365.25,
+    }
+  }
 }
