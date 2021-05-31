@@ -278,7 +278,7 @@ def get_farm_summary(self):
       matches = re.findall(r"(\d+) (\w+)", summary_hash['expected time to win'])
       etw = 0
       for match in matches:
-        factor = conversion_factors_to_from['duration']['days'][match[1]]
+        factor = conversion_factors_to_from['duration']['days'][pluralize(match[1])]
         etw += int(match[0]) * factor
 
   return FarmSummary(
@@ -329,6 +329,12 @@ class FarmSummary():
     self.total_plot_size = total_plot_size
     self.est_net_size = est_net_size
     self.etw = etw
+
+def pluralize(str):
+  if str[-1] == 's':
+    return str
+  else:
+    return str + 's'
 
 conversion_factors_to_from = {
   'storage': {
